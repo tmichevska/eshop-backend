@@ -1,4 +1,4 @@
-package com.systems.integrated.eshophopbackend.models.exceptions;
+package com.management.project.eshopbackend.models.exceptions;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

@@ -1,7 +1,7 @@
-package com.systems.integrated.eshopshopbackend.models.interaction;
+package com.management.project.eshopbackend.models.interaction;
 
-import com.systems.integrated.wineshopbackend.models.products.Product;
-import com.systems.integrated.wineshopbackend.models.users.User;
+import com.management.project.eshopbackend.models.products.Product;
+import com.management.project.eshopbackend.models.users.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
