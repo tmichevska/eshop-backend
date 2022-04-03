@@ -1,4 +1,4 @@
-package com.systems.integrated.eshopshopbackend.models.exceptions;
+package com.management.project.eshopbackend.models.exceptions;
 
 public class IllegalAttributeValueException extends RuntimeException{
     public IllegalAttributeValueException(String attributeName, String value){

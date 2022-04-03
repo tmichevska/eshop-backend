@@ -1,4 +1,4 @@
-package com.systems.integrated.eshopshopbackend.models.exceptions;
+package com.management.project.eshopbackend.models.exceptions;
 
 import lombok.Getter;
 
