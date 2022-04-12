@@ -1,6 +1,6 @@
 package com.management.project.eshopbackend.repository;
 
-import org.apache.catalina.User;
+import com.management.project.eshopbackend.models.users.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
