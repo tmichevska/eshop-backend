@@ -1,6 +1,5 @@
 package com.management.project.eshopbackend.models.users.DTO;
 
-
 import com.management.project.eshopbackend.models.enumerations.Role;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

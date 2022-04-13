@@ -19,12 +19,13 @@ import java.util.UUID;
 @Transactional
 public class AuthTokenServiceImpl implements AuthTokenService {
 
+    
     private final AuthTokenJPARepository authTokenJPARepository;
     private final UserJPARepository userJPARepository;
+    
 
-    @Value("${wineShop.authToken.dateExpires}")
+    @Value("${eShop.authToken.dateExpires}")
     private Integer seconds;
-
     @Override
     public AuthToken createAuthToken(Long userId, String type) {
         AuthToken authToken = findByUserId(userId);
