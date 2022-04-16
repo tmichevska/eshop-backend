@@ -74,6 +74,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User createUser(UserDTO userDTO) throws MessagingException {
+        if (userRepository.existsUserByUsername(userDTO.getUsername())) {
+            throw new RuntimeException(String.format("User with this username: %s already exists", userDTO.getUsername()));
+        }
+        if (userRepository.existsUserByEmail(userDTO.getEmail())) {
+            throw new RuntimeException(String.format("User with this email: %s already exists", userDTO.getEmail()));
+        }
         String newPassword = UUID.randomUUID().toString();
 
         User user = User.builder()
@@ -97,6 +103,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User signUp(UserDTO userDTO) {
+        if (userRepository.existsUserByUsername(userDTO.getUsername())) {
+            throw new RuntimeException(String.format("User with this username: %s already exists", userDTO.getUsername()));
+        }
+        if (userRepository.existsUserByEmail(userDTO.getEmail())) {
+            throw new RuntimeException(String.format("User with this email: %s already exists", userDTO.getEmail()));
+        }
+
         User user = User.builder()
                 .email(userDTO.getEmail())
                 .username(userDTO.getUsername())
