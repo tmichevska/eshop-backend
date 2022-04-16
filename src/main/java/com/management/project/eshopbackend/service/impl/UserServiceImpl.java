@@ -1,9 +1,9 @@
 package com.management.project.eshopbackend.service.impl;
 
 import com.management.project.eshopbackend.models.exceptions.EntityNotFoundException;
+import com.management.project.eshopbackend.models.users.AuthToken;
 import com.management.project.eshopbackend.models.users.DTO.UserDTO;
 import com.management.project.eshopbackend.models.users.User;
-import com.management.project.eshopbackend.repository.PostmanJPARepository;
 import com.management.project.eshopbackend.repository.UserJPARepository;
 import com.management.project.eshopbackend.service.intef.AuthTokenService;
 import com.management.project.eshopbackend.service.intef.UserService;
@@ -15,7 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 import service.intef.EmailService;
 
 import javax.mail.MessagingException;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +25,10 @@ import java.util.List;
 public class UserServiceImpl implements UserService {
 
     private final UserJPARepository userRepository;
+    private final EmailService emailService;
+    private final AuthTokenService authTokenService;
+
+    private final BCryptPasswordEncoder encoder;
 
     @Value("${wineShop.mail.url}")
     private String url;
@@ -66,8 +72,26 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User createUser(UserDTO newUser) throws MessagingException {
-        return null;
+    public User createUser(UserDTO userDTO) throws MessagingException {
+        String newPassword = UUID.randomUUID().toString();
+
+        User user = User.builder()
+                .email(userDTO.getEmail())
+                .username(userDTO.getUsername())
+                .password(encoder.encode(newPassword))
+                .name(userDTO.getName())
+                .surname(userDTO.getSurname())
+                .role(userDTO.getRole())
+                .dateCreated(LocalDateTime.now())
+                .build();
+
+        user = userRepository.save(user);
+
+        AuthToken authToken = authTokenService.createAuthToken(user.getId(), "CREATE_USER");
+
+        emailService.sendEmail(CREATE_USER_SUBJECT, user.getEmail(),
+                String.format(CREATE_USER_CONTENT, user.getUsername(), url, authToken.getToken()));
+        return user;
     }
 
     @Override
@@ -77,7 +101,17 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User updateUser(UserDTO userDTO) {
-        return null;
+        User userToUpdate = this.getUserById(userDTO.getId());
+        userToUpdate.setEmail(userDTO.getEmail());
+        userToUpdate.setName(userDTO.getName());
+        userToUpdate.setSurname(userDTO.getSurname());
+        userToUpdate.setUsername(userDTO.getUsername());
+        userToUpdate.setPassword(userDTO.getPassword());
+        userToUpdate.setRole(userDTO.getRole());
+
+        userRepository.save(userToUpdate);
+
+        return userToUpdate;
     }
 
     @Override
