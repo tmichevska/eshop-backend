@@ -1,5 +1,6 @@
 package com.management.project.eshopbackend.service.impl;
 
+import com.management.project.eshopbackend.models.enumerations.Role;
 import com.management.project.eshopbackend.models.exceptions.EntityNotFoundException;
 import com.management.project.eshopbackend.models.users.AuthToken;
 import com.management.project.eshopbackend.models.users.DTO.UserDTO;
@@ -95,8 +96,19 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User signUp(UserDTO newUser) {
-        return null;
+    public User signUp(UserDTO userDTO) {
+        User user = User.builder()
+                .email(userDTO.getEmail())
+                .username(userDTO.getUsername())
+                .password(encoder.encode(userDTO.getPassword()))
+                .name(userDTO.getName())
+                .surname(userDTO.getSurname())
+                .role(Role.ROLE_USER)
+                .dateCreated(LocalDateTime.now())
+                .build();
+
+        userRepository.save(user);
+        return user;
     }
 
     @Override
@@ -115,7 +127,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User changeUserPassword(User User, String newPassword) {
-        return null;
+    public User changeUserPassword(User user, String newPassword) {
+        String encodedPassword = encoder.encode(newPassword);
+        user.setPassword(encodedPassword);
+        userRepository.save(user);
+
+        return user;
     }
 }
