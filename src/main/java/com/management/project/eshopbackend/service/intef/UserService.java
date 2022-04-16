@@ -21,4 +21,10 @@ public interface UserService {
     User updateUser(UserDTO userDTO);
 
     User changeUserPassword (User User, String newPassword);
+
+    void deleteUserById(Long userId);
+
+    void resetUserPassword(User user);
+
+    void createPostman(User user, String city);
 }

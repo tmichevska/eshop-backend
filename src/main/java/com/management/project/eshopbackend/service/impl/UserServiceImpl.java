@@ -4,7 +4,9 @@ import com.management.project.eshopbackend.models.enumerations.Role;
 import com.management.project.eshopbackend.models.exceptions.EntityNotFoundException;
 import com.management.project.eshopbackend.models.users.AuthToken;
 import com.management.project.eshopbackend.models.users.DTO.UserDTO;
+import com.management.project.eshopbackend.models.users.Postman;
 import com.management.project.eshopbackend.models.users.User;
+import com.management.project.eshopbackend.repository.PostmanJPARepository;
 import com.management.project.eshopbackend.repository.UserJPARepository;
 import com.management.project.eshopbackend.service.intef.AuthTokenService;
 import com.management.project.eshopbackend.service.intef.UserService;
@@ -18,6 +20,7 @@ import service.intef.EmailService;
 import javax.mail.MessagingException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -28,7 +31,7 @@ public class UserServiceImpl implements UserService {
     private final UserJPARepository userRepository;
     private final EmailService emailService;
     private final AuthTokenService authTokenService;
-
+    private final PostmanJPARepository postmanRepository;
     private final BCryptPasswordEncoder encoder;
 
     @Value("${wineShop.mail.url}")
@@ -146,5 +149,34 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
 
         return user;
+    }
+
+    @Override
+    public void deleteUserById(Long userId) {
+        User user = this.getUserById(userId);
+        userRepository.delete(user);
+    }
+
+    @Override
+    public void resetUserPassword(User user) {
+        AuthToken authToken = authTokenService.findByUserId(user.getId());
+
+        if (Objects.isNull(authToken)) {
+            authToken = authTokenService.createAuthToken(user.getId(), "RESET_PASSWORD");
+        } else {
+            authToken = authTokenService.updateAuthToken(authToken);
+        }
+
+        try {
+            emailService.sendEmail(RESET_PASSWORD_SUBJECT, user.getEmail(),
+                    String.format(RESET_PASSWORD_CONTENT, user.getUsername(), url, authToken.getToken()));
+        } catch (MessagingException exception) {
+        }
+    }
+
+    @Override
+    public void createPostman(User user, String city) {
+        Postman pc = new Postman(user, city);
+        this.postmanRepository.save(pc);
     }
 }
