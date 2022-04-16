@@ -18,6 +18,7 @@ public class EshopBackendApplication {
     SpringApplication.run(EshopBackendApplication.class, args);
   }
 
+
   @Override
   public void run(String... args) {
     imageStorageService.init();
@@ -37,7 +38,6 @@ public class EshopBackendApplication {
 
   @Value("${spring.mail.port}")
   private Integer port;
-
 
   @Bean
   public JavaMailSender javaMailService() {
