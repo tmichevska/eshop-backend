@@ -1,7 +1,12 @@
 package com.management.project.eshopbackend.service.impl;
 
 import com.management.project.eshopbackend.models.exceptions.EntityNotFoundException;
+import com.management.project.eshopbackend.models.exceptions.IllegalAttributeValueException;
 import com.management.project.eshopbackend.models.products.Product;
+import com.management.project.eshopbackend.models.products.Attribute;
+import com.management.project.eshopbackend.models.products.Category;
+import com.management.project.eshopbackend.models.products.DTO.ProductDTO;
+import com.management.project.eshopbackend.models.shopping_cart.ShoppingCart;
 import com.management.project.eshopbackend.repository.CategoryJPARepository;
 import com.management.project.eshopbackend.repository.ProductJPARepository;
 import com.management.project.eshopbackend.repository.AttributeJPARepository;
@@ -43,3 +48,10 @@ public class ProductServiceImpl implements ProductService {
         return productRepository.findAll().stream().filter(product -> product.getCategory().getId().equals(id)).collect(Collectors.toList());
     }
 }
+
+
+
+
+
+
+
