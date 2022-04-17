@@ -52,6 +52,89 @@ public class ProductServiceImpl implements ProductService {
 
 
 
+// DA SE DOKUCA
 
+ @Override
+    public void updateProductAttributesForCategoryId(Long categoryId){
+        List<Product> allProductsUnderThisCategory = productRepository.findAll().stream()
+                .filter(product -> product.getCategory().getId().equals(categoryId)).collect(Collectors.toList());
+        if(allProductsUnderThisCategory.size()==0)
+            return;
+        List<Attribute> newAttributes = allProductsUnderThisCategory.get(0).getCategory().getAttributes();
+        allProductsUnderThisCategory.forEach(product -> {
+            HashMap<Attribute, String> newMap = new HashMap<>();
+            newAttributes.forEach(attribute -> newMap.put(attribute, ""));
+            product.getValueForProductAttribute().forEach((key, value) -> {
+                if(newAttributes.contains(key))
+                    newMap.put(key, value);
+            });
+            product.setValueForProductAttribute(newMap);
+        });
+        productRepository.saveAll(allProductsUnderThisCategory);
+    }
 
+    private HashMap<Attribute, String> convertAttributeIdMapToAttributeMap(Map<Long, String> attributeIdAndValueMap){
+        HashMap<Attribute, String> attributeAndValues = new HashMap<>();
+        attributeIdAndValueMap.forEach((key, value) -> attributeAndValues.put(attributeRepository.findById(key)
+                .orElseThrow(() -> new EntityNotFoundException("Attribute with id " + key + " not found!")), value));
+        attributeAndValues.forEach((key, value) -> {
+            if(key.isNumeric() && !isNumeric(value))
+                throw new IllegalAttributeValueException(key.getName(), value);
+        });
+        return attributeAndValues;
+    }
 
+    private static boolean isNumeric(String strNum) {
+        if (strNum == null) {
+            return false;
+        }
+        try {
+            double d = Double.parseDouble(strNum);
+        } catch (NumberFormatException nfe) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public void updateMainProductImage(Long id, String filePath) {
+        Product product = findById(id);
+        product.setPathToMainProductIMG(filePath);
+        productRepository.save(product);
+    }
+
+    @Override
+    public void updateAllProductImages(Long id, List<String> filePaths) {
+        Product product = findById(id);
+        product.setPathsToProductIMGs(filePaths);
+        productRepository.save(product);
+    }
+
+    @Override
+    public void deleteProductImage(Long id, Integer imageId) {
+        Product product = findById(id);
+        product.getPathsToProductIMGs().remove(imageId + ".jpg");
+        if(product.getPathsToProductIMGs().size()==0)
+            product.setPathToMainProductIMG("none");
+        productRepository.save(product);
+    }
+
+    @Override
+    public void addNewProductImage(Long id, String filename) {
+        Product product = findById(id);
+        product.getPathsToProductIMGs().add(filename);
+        productRepository.save(product);
+    }
+
+    @Override
+    public boolean checkProductQuantity(Long id, int quantity, String username) {
+        ShoppingCart sp = shoppingCartService.getShoppingCart(username);
+        if(
+                sp.getProductsInShoppingCart().stream().filter(p -> p.getProduct().getId().equals(id)).findFirst().orElse(null) != null &&
+                        sp.getProductsInShoppingCart().stream().filter(p -> p.getProduct().getId().equals(id)).findFirst().get().getQuantity()+quantity >
+                                findById(id).getQuantity()
+        )
+            return false;
+        return findById(id).getQuantity()>=quantity;
+    }
+}
