@@ -16,7 +16,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.time.LocalDateTime;
@@ -30,7 +35,6 @@ public class ProductServiceImpl implements ProductService {
     private final CategoryJPARepository categoryRepository;
     private final AttributeJPARepository attributeRepository;
     private final ShoppingCartService shoppingCartService;
-
 
     @Override
     public Product findById(Long id) {
@@ -47,12 +51,92 @@ public class ProductServiceImpl implements ProductService {
     public List<Product> findAllByCategoryId(Long id) {
         return productRepository.findAll().stream().filter(product -> product.getCategory().getId().equals(id)).collect(Collectors.toList());
     }
-}
 
+    @Override
+    public List<Product> filterProducts(long categoryId, double priceFrom, double priceTo, Map<Long, String> attributeIdAndValues) {
+        return productRepository.findAll().stream().filter(product -> {
+            boolean priceInRange = product.getPriceInMKD() >= priceFrom && product.getPriceInMKD() <= priceTo;
+            AtomicBoolean attributesInRange = new AtomicBoolean(true);
+            if(attributeIdAndValues != null){
+                List<Long> keys = new ArrayList<>(attributeIdAndValues.keySet());
+                for (long id : keys) {
+                    Attribute currentAttribute = attributeRepository
+                            .findById(id)
+                            .orElseThrow(() -> new EntityNotFoundException("Attribute with id " + id + " not found!"));
+                    String productAttributeValue = product.getValueForProductAttribute().get(currentAttribute);
+                    if (productAttributeValue == null) {
+                        attributesInRange.set(false);
+                        break;
+                    } else if (currentAttribute.isNumeric()) {
+                        double[] fromToValues = Arrays.stream(attributeIdAndValues.get(id).split("-")).mapToDouble(Double::parseDouble).toArray();
+                        Arrays.sort(fromToValues);
+                        if (
+                                !(fromToValues[0] <= Double.parseDouble(productAttributeValue)
+                                        && fromToValues[1] >= Double.parseDouble(productAttributeValue))
+                        ) {
+                            attributesInRange.set(false);
+                            break;
+                        }
+                    } else {
+                        attributesInRange.set(Arrays.stream(attributeIdAndValues.get(id).split("-"))
+                                .anyMatch(productAttributeValue::equalsIgnoreCase));
+                        if(!attributesInRange.get())
+                            break;
+                    }
+                }
+            }
+            if(categoryId == -1)
+                return priceInRange && attributesInRange.get();
+            else
+                return priceInRange && attributesInRange.get() && product.getCategory().getId().equals(categoryId);
+        }).collect(Collectors.toList());
+    }
 
+    @Override
+    public Product create(ProductDTO productDTO) {
+        if(productDTO.getAttributeIdAndValueMap().values().stream().anyMatch(value -> value.contains("-"))){
+            throw new IllegalArgumentException("Attribute must not have a dash \"-\" in its value!");
+        }
+        Category category = categoryRepository.findById(productDTO.getCategoryId())
+                .orElseThrow(() -> new EntityNotFoundException("Category with id " + productDTO.getCategoryId() + " not found!"));
+        Product product = Product.builder()
+                .category(category)
+                .productTitle(productDTO.getProductTitle())
+                .productDescriptionHTML(productDTO.getProductDescriptionHTML())
+                .quantity(productDTO.getQuantity())
+                .priceInMKD(productDTO.getPriceInMKD())
+                .pathToMainProductIMG("none")
+                .pathsToProductIMGs(new LinkedList<>())
+                .valueForProductAttribute(convertAttributeIdMapToAttributeMap(productDTO.getAttributeIdAndValueMap()))
+                .dateCreated(LocalDateTime.now())
+                .build();
+        return productRepository.save(product);
+    }
 
+    @Override
+    public Product update(ProductDTO productDTO) {
+        if(productDTO.getAttributeIdAndValueMap().values().stream().anyMatch(value -> value.contains("-"))){
+            throw new IllegalArgumentException("Attribute must not have a dash \"-\" in its value!");
+        }
+        Product product = findById(productDTO.getId());
+        product.setProductTitle(productDTO.getProductTitle());
+        product.setProductDescriptionHTML(productDTO.getProductDescriptionHTML());
+        product.setQuantity(productDTO.getQuantity());
+        product.setPriceInMKD(productDTO.getPriceInMKD());
 
-// DA SE DOKUCA
+        if (!productDTO.getId().equals(product.getCategory().getId())) {
+            Category category = categoryRepository.findById(productDTO.getCategoryId())
+                    .orElseThrow(() -> new EntityNotFoundException("Category with id " + productDTO.getCategoryId() + " not found!"));
+            product.setCategory(category);
+            product.setValueForProductAttribute(convertAttributeIdMapToAttributeMap(productDTO.getAttributeIdAndValueMap()));
+        }
+        return productRepository.save(product);
+    }
+
+    @Override
+    public void delete(Long id) {
+        productRepository.deleteById(id);
+    }
 
  @Override
     public void updateProductAttributesForCategoryId(Long categoryId){
