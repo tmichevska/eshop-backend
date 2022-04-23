@@ -1,19 +1,24 @@
 package com.management.project.eshopbackend.models.shopping_cart;
 
 
-import com.management.project.eshopbackend.models.products.DTO.ResponseProductInSomethingDTO;
 import com.management.project.eshopbackend.models.products.DTO.ProductDTO;
+import com.management.project.eshopbackend.models.products.DTO.ResponseProductInSomethingDTO;
 import com.management.project.eshopbackend.models.products.Product;
-
 import com.management.project.eshopbackend.models.shopping_cart.DTO.ShoppingCartDTO;
 import com.management.project.eshopbackend.models.users.User;
-import com.management.project.eshopbackend.models.shopping_cart.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.persistence.*;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
+import javax.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +39,7 @@ public class ShoppingCart {
     private User user;
 
     @OneToMany(mappedBy = "shoppingCart", fetch = FetchType.EAGER)
-    private List<com.systems.integrated.wineshopbackend.models.shopping_cart.ProductInShoppingCart> productsInShoppingCart;
+    private List<ProductInShoppingCart> productsInShoppingCart;
 
     private LocalDateTime dateCreated;
 
