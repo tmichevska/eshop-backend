@@ -1,10 +1,10 @@
-package service.impl;
+package com.management.project.eshopbackend.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-import service.intef.EmailService;
+import com.management.project.eshopbackend.service.intef.EmailService;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
