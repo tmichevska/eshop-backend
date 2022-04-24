@@ -25,7 +25,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class ImageStorageServiceImpl {
+public class ImageStorageServiceImpl implements ImageStorageService {
     private final ProductService productService;
     private final Path root = Paths.get("images");
     private final Map<String, Integer> imageResolutions = new HashMap<>() {{
