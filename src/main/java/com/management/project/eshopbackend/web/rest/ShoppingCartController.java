@@ -1,5 +1,7 @@
 package com.management.project.eshopbackend.web.rest;
 
+import com.management.project.eshopbackend.models.exceptions.EntityNotFoundException;
+import com.management.project.eshopbackend.models.shopping_cart.DTO.DeleteFromCartDTO;
 import com.management.project.eshopbackend.models.shopping_cart.DTO.ShoppingCartDTO;
 import com.management.project.eshopbackend.models.shopping_cart.ShoppingCart;
 import com.management.project.eshopbackend.service.intef.ShoppingCartService;
@@ -31,5 +33,18 @@ public class ShoppingCartController {
             return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
         }
         return new ResponseEntity<>(shoppingCartDTO, HttpStatus.OK);
+    }
+    @PostMapping("/deleteProduct")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<?> deleteProductFromShoppingCart(@RequestBody DeleteFromCartDTO deleteFromCartDTO) {
+        String username = deleteFromCartDTO.getUsername();
+        Long productId = deleteFromCartDTO.getProductId();
+        try {
+            shoppingCartService.deleteProductFromShoppingCart(productId, username);
+        }
+        catch (UsernameNotFoundException | EntityNotFoundException ex) {
+            return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
+        }
+        return new ResponseEntity<>("Product in shopping cart with id " + productId + " deleted.", HttpStatus.OK);
     }
 }
