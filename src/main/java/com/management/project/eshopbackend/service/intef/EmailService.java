@@ -1,4 +1,4 @@
-package service.intef;
+package com.management.project.eshopbackend.service.intef;
 
 import javax.mail.MessagingException;
 
