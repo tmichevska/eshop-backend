@@ -1,13 +1,18 @@
 package com.management.project.eshopbackend.web.rest;
 
 import com.management.project.eshopbackend.models.exceptions.EntityNotFoundException;
+import com.management.project.eshopbackend.models.products.DTO.CheckQuantityDTO;
 import com.management.project.eshopbackend.models.products.DTO.ProductDTO;
+import com.management.project.eshopbackend.models.products.DTO.ProductEnoughQuantityDTO;
 import com.management.project.eshopbackend.models.products.Product;
+import com.management.project.eshopbackend.service.intef.ImageStorageService;
 import com.management.project.eshopbackend.service.intef.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -18,6 +23,7 @@ import java.util.stream.Collectors;
 @CrossOrigin(value = "*")
 public class ProductController {
     private final ProductService productService;
+    private final ImageStorageService imageStorageService;
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getProduct(@PathVariable Long id) {
@@ -32,7 +38,8 @@ public class ProductController {
 
     @GetMapping
     public ResponseEntity<?> getAllProducts() {
-        List<ProductDTO> products = productService.findAll().stream().map(Product::convertToDTO).collect(Collectors.toList());
+        List<ProductDTO> products = productService.findAll().stream().map(Product::convertToDTO)
+                .collect(Collectors.toList());
         return new ResponseEntity<>(products, HttpStatus.OK);
     }
 
@@ -62,5 +69,34 @@ public class ProductController {
     public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
         productService.delete(id);
         return new ResponseEntity<>("Product with id " + id + " deleted.", HttpStatus.OK);
+    }
+
+    @GetMapping("/bycat/{id}")
+    public ResponseEntity<?> getAllProductsByCategoryId(@PathVariable Long id) {
+        List<ProductDTO> products = productService.findAllByCategoryId(id).stream().map(Product::convertToDTO)
+                .collect(Collectors.toList());
+        return new ResponseEntity<>(products, HttpStatus.OK);
+    }
+
+    @PostMapping("/check-quantity")
+    public ResponseEntity<?> checkProductQuantity(@RequestBody CheckQuantityDTO cqDTO, Authentication authentication) {
+        if (authentication == null) {
+            return new ResponseEntity<>("Unauthenticated", HttpStatus.OK);
+        }
+        ProductEnoughQuantityDTO peqDTO = new ProductEnoughQuantityDTO(
+                productService.checkProductQuantity(
+                        cqDTO.getProductId(), cqDTO.getQuantity(), authentication.getName()),
+                Product.convertToDTO(productService.findById(cqDTO.getProductId())));
+        return new ResponseEntity<>(peqDTO, HttpStatus.OK);
+    }
+
+    @PutMapping("/img/{id}")
+    public ResponseEntity<?> addNewProductImage(@PathVariable Long id, MultipartFile image) {
+        String message = "";
+        String fileName = "";
+        fileName = imageStorageService.saveNewImage(image, id) + ".jpg";
+        message = "Image saved successfully!";
+        productService.addNewProductImage(id, fileName);
+        return ResponseEntity.status(HttpStatus.OK).body(message);
     }
 }
