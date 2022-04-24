@@ -2,6 +2,7 @@ package com.management.project.eshopbackend.web.rest;
 
 import com.management.project.eshopbackend.models.exceptions.EntityNotFoundException;
 import com.management.project.eshopbackend.models.shopping_cart.DTO.DeleteFromCartDTO;
+import com.management.project.eshopbackend.models.shopping_cart.DTO.ProductInShoppingCartDTO;
 import com.management.project.eshopbackend.models.shopping_cart.DTO.ShoppingCartDTO;
 import com.management.project.eshopbackend.models.shopping_cart.ShoppingCart;
 import com.management.project.eshopbackend.service.intef.ShoppingCartService;
@@ -46,5 +47,19 @@ public class ShoppingCartController {
             return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
         }
         return new ResponseEntity<>("Product in shopping cart with id " + productId + " deleted.", HttpStatus.OK);
+    }
+    @PostMapping("/{username}/addToShoppingCart")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<?> addProductToShoppingCart(@PathVariable String username,
+                                                      @RequestBody ProductInShoppingCartDTO productInShoppingCartDTO) {
+        ShoppingCart shoppingCart;
+        try{
+            shoppingCart = shoppingCartService.addProductToShoppingCart(productInShoppingCartDTO, username);
+        }
+        catch (UsernameNotFoundException | EntityNotFoundException ex) {
+            return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
+        }
+        ShoppingCartDTO shoppingCartDTO = shoppingCartService.convertToDTO(shoppingCart);
+        return new ResponseEntity<>(shoppingCartDTO, HttpStatus.OK);
     }
 }
