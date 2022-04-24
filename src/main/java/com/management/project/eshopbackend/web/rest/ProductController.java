@@ -94,9 +94,15 @@ public class ProductController {
     public ResponseEntity<?> addNewProductImage(@PathVariable Long id, MultipartFile image) {
         String message = "";
         String fileName = "";
-        fileName = imageStorageService.saveNewImage(image, id) + ".jpg";
-        message = "Image saved successfully!";
-        productService.addNewProductImage(id, fileName);
-        return ResponseEntity.status(HttpStatus.OK).body(message);
+        try {
+            fileName = imageStorageService.saveNewImage(image, id) + ".jpg";
+            message = "Image saved successfully!";
+            productService.addNewProductImage(id, fileName);
+            return ResponseEntity.status(HttpStatus.OK).body(message);
+        } catch (Exception e) {
+            message = "Failed to save image!";
+            return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(message);
+        }
+
     }
 }
