@@ -83,12 +83,15 @@ public class UserController {
     @DeleteMapping(value = "/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteUser(@PathVariable("userId") Long userId) {
+
         userService.deleteUserById(userId);
+
         return new ResponseEntity<>(String.format("User [%s] is deleted!", userId), HttpStatus.OK);
     }
 
     @PostMapping(value = "/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody ResetPasswordDTO resetPasswordDTO) {
+
         User user = userService.getUserByEmail(resetPasswordDTO.getEmail());
 
         if (Objects.isNull(user)) {
