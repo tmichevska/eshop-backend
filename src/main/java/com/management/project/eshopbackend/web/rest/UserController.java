@@ -102,4 +102,5 @@ public class UserController {
 
         return new ResponseEntity<>("Email successfully sent to " + user.getUsername(), HttpStatus.OK);
     }
+    
 }
