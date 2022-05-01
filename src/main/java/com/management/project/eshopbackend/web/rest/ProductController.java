@@ -12,6 +12,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -49,34 +51,6 @@ public class ProductController {
         return new ResponseEntity<>(products, HttpStatus.OK);
     }
 
-    @PostMapping("/create")
-    public ResponseEntity<?> createNewProduct(@RequestBody ProductDTO productDTO) {
-        Product product;
-        try {
-            product = productService.create(productDTO);
-        } catch (IllegalArgumentException ex) {
-            return new ResponseEntity<>(ex.toString(), HttpStatus.BAD_REQUEST);
-        }
-        return new ResponseEntity<>(Product.convertToDTO(product), HttpStatus.OK);
-    }
-
-    @PutMapping("/update")
-    public ResponseEntity<?> updateProduct(@RequestBody ProductDTO productDTO) {
-        Product product;
-        try {
-            product = productService.update(productDTO);
-        } catch (IllegalArgumentException ex) {
-            return new ResponseEntity<>(ex.toString(), HttpStatus.BAD_REQUEST);
-        }
-        return new ResponseEntity<>(Product.convertToDTO(product), HttpStatus.OK);
-    }
-
-    @DeleteMapping("/delete/{id}")
-    public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
-        productService.delete(id);
-        return new ResponseEntity<>("Product with id " + id + " deleted.", HttpStatus.OK);
-    }
-
     @GetMapping("/bycat/{id}")
     public ResponseEntity<?> getAllProductsByCategoryId(@PathVariable Long id) {
         List<ProductDTO> products = productService.findAllByCategoryId(id).stream().map(Product::convertToDTO)
@@ -91,24 +65,9 @@ public class ProductController {
         }
         ProductEnoughQuantityDTO peqDTO = new ProductEnoughQuantityDTO(
                 productService.checkProductQuantity(
-                        cqDTO.getProductId(), cqDTO.getQuantity(), authentication.getName()),
-                Product.convertToDTO(productService.findById(cqDTO.getProductId())));
+                        cqDTO.getProductId(), cqDTO.getQuantity(), authentication.getName()
+                ), Product.convertToDTO(productService.findById(cqDTO.getProductId())));
         return new ResponseEntity<>(peqDTO, HttpStatus.OK);
-    }
-
-    @PutMapping("/img/{id}")
-    public ResponseEntity<?> addNewProductImage(@PathVariable Long id, MultipartFile image) {
-        String message = "";
-        String fileName = "";
-        try {
-            fileName = imageStorageService.saveNewImage(image, id) + ".jpg";
-            message = "Image saved successfully!";
-            productService.addNewProductImage(id, fileName);
-            return ResponseEntity.status(HttpStatus.OK).body(message);
-        } catch (Exception e) {
-            message = "Failed to save image!";
-            return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(message);
-        }
     }
 
     @GetMapping("/filter")
@@ -132,28 +91,98 @@ public class ProductController {
         double[] fromToValues = Arrays.stream(priceParts[1].split("-")).mapToDouble(Double::parseDouble).toArray();
         Arrays.sort(fromToValues);
         if (attributes.isBlank() || attributes.isEmpty()) {
-            List<ProductDTO> products =
-                    productService.filterProducts(categoryId, fromToValues[0], fromToValues[1], null)
-                            .stream().map(Product::convertToDTO).collect(Collectors.toList());
+            List<ProductDTO> products = productService
+                    .filterProducts(categoryId, fromToValues[0], fromToValues[1], null)
+                    .stream().map(Product::convertToDTO).collect(Collectors.toList());
             return new ResponseEntity<>(products, HttpStatus.OK);
         } else {
             Map<Long, String> attributeIdAndValueMap = Arrays.stream(attributes.split(","))
                     .map(string -> string.split(":"))
                     .collect(Collectors.toMap(strings -> Long.parseLong(strings[0]), strings -> strings[1]));
-
-            List<ProductDTO> products = productService.filterProducts(categoryId, fromToValues[0], fromToValues[1], attributeIdAndValueMap)
+            List<ProductDTO> products = productService
+                    .filterProducts(categoryId, fromToValues[0], fromToValues[1], attributeIdAndValueMap)
                     .stream().map(Product::convertToDTO).collect(Collectors.toList());
             return new ResponseEntity<>(products, HttpStatus.OK);
         }
     }
 
+    @PostMapping("/create")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> createNewProduct(@RequestBody ProductDTO productDTO) {
+        Product product;
+        try {
+            product = productService.create(productDTO);
+        } catch (IllegalArgumentException ex) {
+            return new ResponseEntity<>(ex.toString(), HttpStatus.BAD_REQUEST);
+        }
+        return new ResponseEntity<>(Product.convertToDTO(product), HttpStatus.OK);
+    }
+
+    @PutMapping("/update")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateProduct(@RequestBody ProductDTO productDTO) {
+        Product product;
+        try {
+            product = productService.update(productDTO);
+        } catch (IllegalArgumentException ex) {
+            return new ResponseEntity<>(ex.toString(), HttpStatus.BAD_REQUEST);
+        }
+        return new ResponseEntity<>(Product.convertToDTO(product), HttpStatus.OK);
+    }
+
+    @DeleteMapping("/delete/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
+        productService.delete(id);
+        return new ResponseEntity<>("Product with id " + id + " deleted.", HttpStatus.OK);
+    }
+
+    @PutMapping("/img/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> addNewProductImage(@PathVariable Long id, MultipartFile image) {
+        String message = "";
+        String fileName = "";
+        try {
+            fileName = imageStorageService.saveNewImage(image, id) + ".jpg";
+            message = "Image saved successfully!";
+            productService.addNewProductImage(id, fileName);
+            return ResponseEntity.status(HttpStatus.OK).body(message);
+        } catch (Exception e) {
+            message = "Failed to save image!";
+            return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(message);
+        }
+    }
+
     @PutMapping("/img")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> setMainProductImage(@RequestParam Long productId, @RequestParam Integer mainImageId) {
         productService.updateMainProductImage(productId, mainImageId + ".jpg");
         return ResponseEntity.status(HttpStatus.OK).body("success");
     }
 
+    @PostMapping("/img")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> addAllProductImages(@RequestParam Long productId, @RequestParam Integer mainImageId,
+                                                 @RequestParam MultipartFile[] images) {
+        String message = "";
+        LinkedList<String> fileNames = new LinkedList<>();
+        try {
+            Arrays.stream(images).forEach(image -> {
+                int imgNum = imageStorageService.saveNewImage(image, productId);
+                fileNames.add(imgNum + ".jpg");
+            });
+            message = "Images saved successfully!";
+            productService.updateAllProductImages(productId, fileNames);
+            productService.updateMainProductImage(productId, fileNames.get(mainImageId - 1));
+            return ResponseEntity.status(HttpStatus.OK).body(message);
+        } catch (Exception e) {
+            message = "Failed to save images!";
+            return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(message);
+        }
+    }
+
     @DeleteMapping("/img/delete/{productId}/{imageId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteProductImage(@PathVariable Long productId, @PathVariable Integer imageId) {
         productService.deleteProductImage(productId, imageId);
         return ResponseEntity.status(HttpStatus.OK).body("success");
@@ -167,5 +196,29 @@ public class ProductController {
     @GetMapping("/images/main/{productId}")
     public ResponseEntity<String> getMainImagePathForProductId(@PathVariable Long productId) {
         return ResponseEntity.status(HttpStatus.OK).body(productService.findById(productId).getPathToMainProductIMG());
+    }
+
+    @GetMapping("/images/{productId}/{resolution}/main")
+    public ResponseEntity<Resource> getMainImageForProductId(@PathVariable Long productId,
+                                                             @PathVariable String resolution) {
+        String filename = productService.findById(productId).getPathToMainProductIMG();
+        Resource file = null;
+        if (!filename.equals("none"))
+            file = imageStorageService.load(productId + File.separator + resolution + File.separator + filename);
+        else {
+            file = imageStorageService.load("placeholder.png");
+        }
+        return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION,
+                "attachment; filename=\"" + file.getFilename() + "\"").body(file);
+    }
+
+    @GetMapping("/images/{productId}/{resolution}/{imageName}")
+    public ResponseEntity<Resource> getImage(@PathVariable String productId, @PathVariable String resolution,
+                                             @PathVariable String imageName) {
+        Resource file = imageStorageService
+                .load(productId + File.separator + resolution + File.separator + imageName);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getFilename() + "\"")
+                .body(file);
     }
 }
