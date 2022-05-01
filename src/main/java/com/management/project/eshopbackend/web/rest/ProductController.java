@@ -11,10 +11,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -103,6 +106,42 @@ public class ProductController {
             message = "Failed to save image!";
             return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(message);
         }
+    }
 
+    @GetMapping("/filter")
+    public ResponseEntity<?> filterProducts(@RequestParam MultiValueMap<String, String> filters){
+        //vo filters mora konstanto da se zapazat ovie fakti:
+        //key -> value (shto oznachuvaat primerite podole
+
+        //pricerange -> valuta:0-100 (primer, ova vazhi za site proizvodi bidejki site imaat cena)
+        //attributes -> key:value (odeleni so zapirka, bidejki imame razlichni atributi, kje idat vo eden key
+        //site, a potoa vo lista od key:value), taka shto eden povik primer za atribut za tezhina i vid so id 1 i 2
+        //bi bil: attributes=1:5-100,2:crveno
+        //so ova, filtrirame atribut so id 1 (tezhina) od 5-100 kg, i atribut so id 2 (vid) da e ednakov na 'crveno'
+
+        //celosen povik bi bilo: /api/products/filter?categoryid=2&pricerange=mkd:0-100&attributes=1:5-100,2:crveno
+        String priceRange = filters.get("pricerange").get(0);
+        String attributes = filters.get("attributes").get(0);
+        long categoryId = Long.parseLong(filters.get("categoryid").get(0));
+        String[] priceParts = priceRange.split(":"); //priceParts[0] e valutata, priceParts[1] e range-ot
+        //sega za sega valutata e mkd
+
+        double[] fromToValues = Arrays.stream(priceParts[1].split("-")).mapToDouble(Double::parseDouble).toArray();
+        Arrays.sort(fromToValues);
+        if(attributes.isBlank() || attributes.isEmpty()){
+            List<ProductDTO> products =
+                    productService.filterProducts(categoryId, fromToValues[0], fromToValues[1], null)
+                    .stream().map(Product::convertToDTO).collect(Collectors.toList());
+            return new ResponseEntity<>(products, HttpStatus.OK);
+        }
+        else{
+            Map<Long, String> attributeIdAndValueMap = Arrays.stream(attributes.split(","))
+                    .map(string -> string.split(":"))
+                    .collect(Collectors.toMap(strings -> Long.parseLong(strings[0]), strings -> strings[1]));
+
+            List<ProductDTO> products = productService.filterProducts(categoryId, fromToValues[0], fromToValues[1], attributeIdAndValueMap)
+                    .stream().map(Product::convertToDTO).collect(Collectors.toList());
+            return new ResponseEntity<>(products, HttpStatus.OK);
+        }
     }
 }
