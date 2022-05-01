@@ -8,6 +8,8 @@ import com.management.project.eshopbackend.models.products.Product;
 import com.management.project.eshopbackend.service.intef.ImageStorageService;
 import com.management.project.eshopbackend.service.intef.ProductService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -15,6 +17,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -109,7 +112,7 @@ public class ProductController {
     }
 
     @GetMapping("/filter")
-    public ResponseEntity<?> filterProducts(@RequestParam MultiValueMap<String, String> filters){
+    public ResponseEntity<?> filterProducts(@RequestParam MultiValueMap<String, String> filters) {
         //vo filters mora konstanto da se zapazat ovie fakti:
         //key -> value (shto oznachuvaat primerite podole
 
@@ -128,13 +131,12 @@ public class ProductController {
 
         double[] fromToValues = Arrays.stream(priceParts[1].split("-")).mapToDouble(Double::parseDouble).toArray();
         Arrays.sort(fromToValues);
-        if(attributes.isBlank() || attributes.isEmpty()){
+        if (attributes.isBlank() || attributes.isEmpty()) {
             List<ProductDTO> products =
                     productService.filterProducts(categoryId, fromToValues[0], fromToValues[1], null)
-                    .stream().map(Product::convertToDTO).collect(Collectors.toList());
+                            .stream().map(Product::convertToDTO).collect(Collectors.toList());
             return new ResponseEntity<>(products, HttpStatus.OK);
-        }
-        else{
+        } else {
             Map<Long, String> attributeIdAndValueMap = Arrays.stream(attributes.split(","))
                     .map(string -> string.split(":"))
                     .collect(Collectors.toMap(strings -> Long.parseLong(strings[0]), strings -> strings[1]));
@@ -143,5 +145,27 @@ public class ProductController {
                     .stream().map(Product::convertToDTO).collect(Collectors.toList());
             return new ResponseEntity<>(products, HttpStatus.OK);
         }
+    }
+
+    @PutMapping("/img")
+    public ResponseEntity<?> setMainProductImage(@RequestParam Long productId, @RequestParam Integer mainImageId) {
+        productService.updateMainProductImage(productId, mainImageId + ".jpg");
+        return ResponseEntity.status(HttpStatus.OK).body("success");
+    }
+
+    @DeleteMapping("/img/delete/{productId}/{imageId}")
+    public ResponseEntity<?> deleteProductImage(@PathVariable Long productId, @PathVariable Integer imageId) {
+        productService.deleteProductImage(productId, imageId);
+        return ResponseEntity.status(HttpStatus.OK).body("success");
+    }
+
+    @GetMapping("/images/{productId}")
+    public ResponseEntity<List<String>> getImagePathsForProductId(@PathVariable Long productId) {
+        return ResponseEntity.status(HttpStatus.OK).body(imageStorageService.getNumberOfImagesForProductId(productId));
+    }
+
+    @GetMapping("/images/main/{productId}")
+    public ResponseEntity<String> getMainImagePathForProductId(@PathVariable Long productId) {
+        return ResponseEntity.status(HttpStatus.OK).body(productService.findById(productId).getPathToMainProductIMG());
     }
 }
